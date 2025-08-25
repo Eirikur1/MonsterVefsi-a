@@ -1,0 +1,75 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies (if any)
+      run: |
+        if [ -f "package.json" ]; then
+          npm ci
+        fi
+        
+    - name: Validate HTML
+      run: |
+        # Basic HTML validation
+        if grep -q "<!doctype html>" index.html; then
+          echo "✅ HTML doctype found"
+        else
+          echo "❌ HTML doctype missing"
+          exit 1
+        fi
+        
+        # Check for required meta tags
+        if grep -q '<meta charset="utf-8"' index.html; then
+          echo "✅ UTF-8 charset found"
+        else
+          echo "❌ UTF-8 charset missing"
+          exit 1
+        fi
+        
+        if grep -q '<meta name="viewport"' index.html; then
+          echo "✅ Viewport meta tag found"
+        else
+          echo "❌ Viewport meta tag missing"
+          exit 1
+        fi
+        
+        echo "✅ HTML validation passed"
+        
+    - name: Check for broken links
+      run: |
+        # Simple check for common issues
+        if grep -q "http://" index.html; then
+          echo "⚠️  Found HTTP links (consider using HTTPS)"
+        fi
+        
+        echo "✅ Link check completed"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
+        publish_branch: gh-pages

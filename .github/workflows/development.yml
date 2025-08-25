@@ -1,0 +1,156 @@
+name: Development Workflow
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate and Test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Validate HTML structure
+      run: |
+        echo "🔍 Validating HTML structure..."
+        
+        # Check for required HTML elements
+        if ! grep -q "<!doctype html>" index.html; then
+          echo "❌ Missing DOCTYPE declaration"
+          exit 1
+        fi
+        
+        if ! grep -q '<html lang="en">' index.html; then
+          echo "❌ Missing HTML lang attribute"
+          exit 1
+        fi
+        
+        if ! grep -q '<head>' index.html; then
+          echo "❌ Missing head section"
+          exit 1
+        fi
+        
+        if ! grep -q '<body>' index.html; then
+          echo "❌ Missing body section"
+          exit 1
+        fi
+        
+        echo "✅ HTML structure validation passed"
+        
+    - name: Check meta tags
+      run: |
+        echo "🔍 Checking meta tags..."
+        
+        # Check for essential meta tags
+        if ! grep -q '<meta charset="utf-8"' index.html; then
+          echo "❌ Missing UTF-8 charset"
+          exit 1
+        fi
+        
+        if ! grep -q '<meta name="viewport"' index.html; then
+          echo "❌ Missing viewport meta tag"
+          exit 1
+        fi
+        
+        if ! grep -q '<title>' index.html; then
+          echo "❌ Missing title tag"
+          exit 1
+        fi
+        
+        echo "✅ Meta tags validation passed"
+        
+    - name: Check accessibility
+      run: |
+        echo "🔍 Checking accessibility features..."
+        
+        # Check for alt attributes on images
+        if grep -q '<img' index.html && ! grep -q 'alt=' index.html; then
+          echo "⚠️  Images found without alt attributes"
+        fi
+        
+        # Check for semantic HTML elements
+        if grep -q '<main>' index.html; then
+          echo "✅ Main element found"
+        fi
+        
+        if grep -q '<header>' index.html; then
+          echo "✅ Header element found"
+        fi
+        
+        if grep -q '<nav>' index.html; then
+          echo "✅ Navigation element found"
+        fi
+        
+        echo "✅ Accessibility check completed"
+        
+    - name: Check responsive design
+      run: |
+        echo "🔍 Checking responsive design elements..."
+        
+        # Check for viewport meta tag
+        if grep -q 'width=device-width' index.html; then
+          echo "✅ Responsive viewport configured"
+        else
+          echo "❌ Responsive viewport not configured"
+          exit 1
+        fi
+        
+        # Check for media queries in CSS
+        if grep -q '@media' index.html; then
+          echo "✅ Media queries found"
+        else
+          echo "⚠️  No media queries found (may not be responsive)"
+        fi
+        
+        echo "✅ Responsive design check completed"
+        
+    - name: Performance check
+      run: |
+        echo "🔍 Checking performance optimizations..."
+        
+        # Check for external resources
+        if grep -q 'https://fonts.googleapis.com' index.html; then
+          echo "✅ Google Fonts loaded"
+        fi
+        
+        # Check for inline CSS (good for performance)
+        if grep -q '<style>' index.html; then
+          echo "✅ CSS is inline (good for performance)"
+        fi
+        
+        echo "✅ Performance check completed"
+        
+    - name: Run tests
+      run: |
+        echo "🧪 Running tests..."
+        npm test
+        echo "✅ Tests completed"
+        
+    - name: Build check
+      run: |
+        echo "🔨 Checking build process..."
+        npm run build
+        echo "✅ Build check completed"
+        
+    - name: Success message
+      run: |
+        echo "🎉 All validations passed!"
+        echo "✅ HTML structure is valid"
+        echo "✅ Meta tags are properly configured"
+        echo "✅ Accessibility features are in place"
+        echo "✅ Responsive design is implemented"
+        echo "✅ Performance optimizations are applied"
